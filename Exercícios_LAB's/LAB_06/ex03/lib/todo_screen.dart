@@ -1,70 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models/todo.dart';
-
-enum TodoFilter { all, active, completed }
-
-// ==========================================
-// PROVIDERS
-// ==========================================
-
-class TodosNotifier extends Notifier<List<Todo>> {
-  @override
-  List<Todo> build() {
-    return exemplo();
-  }
-
-  void addTodo(String title) {
-    final newId = state.isEmpty ? 0 : state.last.id + 1;
-    state = [...state, Todo(id: newId, title: title)];
-  }
-
-  void toggleCompleted(int id) {
-    state = [
-      for (final todo in state)
-        if (todo.id == id)
-          todo.copyWith(completed: !todo.completed)
-        else
-          todo
-    ];
-  }
-
-  void deleteTodo(int id) {
-    state = state.where((todo) => todo.id != id).toList();
-  }
-
-  void clearCompleted() {
-    state = state.where((todo) => !todo.completed).toList();
-  }
-}
-
-final todosProvider = NotifierProvider<TodosNotifier, List<Todo>>(() {
-  return TodosNotifier();
-});
-
-final filterProvider = StateProvider<TodoFilter>((ref) => TodoFilter.all);
+import 'provider/counter_provider.dart'; // <-- Importamos os providers do ficheiro separado
 
 // ==========================================
-// UI
+// UI (Interface Visual)
 // ==========================================
 
 class TodoScreen extends ConsumerWidget {
   TodoScreen({super.key});
 
+  // Controlador do campo de texto
   final _ctrl = TextEditingController();
 
   void _addTodo(WidgetRef ref) {
     if (_ctrl.text.trim().isEmpty) return;
     
+    // Ler o Notifier para adicionar a tarefa
     ref.read(todosProvider.notifier).addTodo(_ctrl.text.trim());
     _ctrl.clear(); 
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Escutamos os estados. Sempre que mudarem, a UI reconstrói
     final todos = ref.watch(todosProvider);
     final filter = ref.watch(filterProvider);
 
+    // Lógica para filtrar as tarefas localmente no build
     List<Todo> filteredTodos;
     switch (filter) {
       case TodoFilter.all:
@@ -92,6 +55,7 @@ class TodoScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          // Barra de filtros
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SegmentedButton<TodoFilter>(
@@ -105,6 +69,7 @@ class TodoScreen extends ConsumerWidget {
             ),
           ),
 
+          // Contador de tarefas pendentes
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Align(
@@ -115,6 +80,7 @@ class TodoScreen extends ConsumerWidget {
             ),
           ),
 
+          // Lista de tarefas
           Expanded(
             child: filteredTodos.isEmpty
                 ? const Center(
@@ -150,6 +116,7 @@ class TodoScreen extends ConsumerWidget {
                   ),
           ),
 
+          // Campo para adicionar nova tarefa
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -175,6 +142,9 @@ class TodoScreen extends ConsumerWidget {
   }
 }
 
+// ==========================================
+// WIDGET CARD
+// ==========================================
 class _TodoCard extends StatelessWidget {
   final Todo todo;
   final VoidCallback onToggle;
